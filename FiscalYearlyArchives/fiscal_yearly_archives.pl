@@ -21,7 +21,7 @@ our $VERSION = '0.01';
 
 my $plugin = __PACKAGE__->new({
     name => 'FiscalYearlyArchives',
-    description => 'A plugin for building Fiscal Yearly Archives.',
+    description => q(<MT_TRANS phrase="A plugin for building Fiscal Yearly Archives">),
     doc_link => 'http://code.as-is.net/wiki/FiscalYearlyArchives',
     author_name => 'Hirotaka Ogawa',
     author_link => 'http://profile.typekey.com/ogawa/',

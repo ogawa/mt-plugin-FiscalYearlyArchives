@@ -7,6 +7,7 @@ use vars qw( %Lexicon );
 
 our %Lexicon = (
 		'FISCAL-YEARLY_ADV' => '年度別',
+		'A plugin for building Fiscal Yearly Archives' => '年度別アーカイブを生成するプラグイン',
 		);
 
 1;
