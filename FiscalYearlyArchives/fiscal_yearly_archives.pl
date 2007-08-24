@@ -50,14 +50,14 @@ sub init_registry {
 			    archive_group_iter => \&archive_group_iter,
 			    archive_group_entries => \&archive_group_entries,
 			    archive_entries_count => \&archive_entries_count,
-			    dynamic_template => '<$MTArchiveFiscalYear$>',
 			    default_archive_templates => [
 				ArchiveFileTemplate(
-				    label => 'yyyy/index.html',
-				    template => '<$MTArchiveFiscalYear$>/%i',
+				    label => 'fiscal/yyyy/index.html',
+				    template => 'fiscal/<$MTArchiveFiscalYear$>/%i',
 				    default => 1
 				),
 			    ],
+			    dynamic_template => 'fiscal/<$MTArchiveFiscalYear$>',
 			    dynamic_support => 1,
 			    date_based => 1,
 			    # ???
