@@ -60,6 +60,7 @@ sub init_registry {
 			    ],
 			    dynamic_support => 1,
 			    date_based => 1,
+			    # ???
 			    template_params => {
 				datebased_only_archive => 1,
 				datebased_fiscal_yearly_archive => 1,
@@ -135,23 +136,40 @@ sub archive_group_iter {
     my $sort_order = ($args->{sort_order} || '') eq 'ascend' ? 'ascend' : 'descend';
     my $order = $sort_order eq 'ascend' ? 'asc' : 'desc';
 
-    require MT::Entry;
-    my $iter = MT::Entry->count_group_by({
+    my $iter = MT->model('entry')->count_group_by({
 	blog_id => $blog->id,
 	status  => MT::Entry::RELEASE(),
     }, {
-	## WRONG! WRONG!
-	group => ["extract(year from authored_on)"],
-	$args->{lastn} ? ( limit => $args->{lastn} ) : (),
-	sort => "extract(year from authored_on) $order",
+	group => ["extract(year from authored_on)", "extract(month from authored_on)"],
+	sort => "extract(year from authored_on) $order, extract(month from authored_on) $order",
     })
-	or return $ctx->error("Couldn't get yearly archive list");
+	or return $ctx->error("Couldn't get FiscalYearly archive list");
+
+    # dirrty!
+    my @count_groups;
+    my $prev_year;
+    while (my @row = $iter->()) {
+	my $ts = sprintf("%04d%02d%02d000000", $row[1], $row[2], 1);
+	my ($start, $end) = start_end_fiscal_year($ts);
+	my ($year) = unpack 'A4', $start;
+	if ($year == $prev_year) {
+	    $count_groups[-1]->{count} += $row[0];
+	} else {
+	    push @count_groups, {
+		count => $row[0],
+		fiscal_year => $year,
+		start => $start,
+		end => $end,
+	    };
+	    $prev_year = $year;
+	}
+    }
+    my $lastn = $args->{lastn};
+    splice(@count_groups, $lastn) if $lastn;
 
     return sub {
-	while (my @row = $iter->()) {
-	    my $date = sprintf("%04d%02d%02d000000", $row[1], 1, 1);
-	    my ($start, $end) = start_end_fiscal_year($date);
-	    return ($row[0], year => $row[1], start => $start, end => $end);
+	while (my $group = shift(@count_groups)) {
+	    return ($group->{count}, %$group);
 	}
 	undef;
     };
@@ -159,7 +177,7 @@ sub archive_group_iter {
 
 sub archive_group_entries {
     my ($ctx, %param) = @_;
-    my $ts = sprintf("%04d%02d%02d000000", $param{year}, 4, 1)
+    my $ts = sprintf("%04d%02d%02d000000", $param{fiscal_year}, 4, 1)
 	if %param;
     my ($start, $end);
     if ($ts) {
@@ -180,17 +198,17 @@ sub archive_group_entries {
 	'sort' => 'authored_on',
 	'direction' => 'descend',
     })
-	or return $ctx->error("Couldn't get Fiscal-Year archive list");
+	or return $ctx->error("Couldn't get FiscalYearly archive list");
     \@entries;
 }
 
 sub archive_entries_count {
     my ($params) = @_;
-    my $blog     = $params->{Blog};
-    my $at       = $params->{ArchiveType};
-    my $ts       = $params->{Timestamp};
-    my $cat      = $params->{Category};
-    my $auth     = $params->{Author};
+    my $blog = $params->{Blog};
+    my $at   = $params->{ArchiveType};
+    my $ts   = $params->{Timestamp};
+    my $cat  = $params->{Category};
+    my $auth = $params->{Author};
 
     my ($start, $end);
     if ($ts) {
@@ -199,22 +217,12 @@ sub archive_entries_count {
     my $count = MT->model('entry')->count({
 	blog_id => $blog->id,
 	status  => MT::Entry::RELEASE(),
-	( $ts ? ( authored_on => [ $start, $end ] ) : () ),
-	( $auth ? ( author_id => $auth->id ) : () ),
+	($ts ? (authored_on => [$start, $end]) : ()),
+	($auth ? (author_id => $auth->id) : ()),
     }, {
-            ( $ts ? ( range => { authored_on => 1 } ) : () ),
-            (
-                $cat
-                ? (
-                    'join' => [
-                        'MT::Placement', 'entry_id',
-                        { category_id => $cat->id }
-                    ]
-                  )
-                : ()
-            ),
-        }
-    );
+	($ts ? (range => { authored_on => 1 }) : ()),
+	($cat ? ('join' => ['MT::Placement', 'entry_id', { category_id => $cat->id }]) : ()),
+    });
     $count;
 }
 
