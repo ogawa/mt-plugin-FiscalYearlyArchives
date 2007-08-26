@@ -1,6 +1,7 @@
 # FiscalYearlyArchives
 #
 # $Id$
+#
 # This software is provided as-is. You may use it for commercial or 
 # personal use. If you distribute it, please keep this notice intact.
 #
@@ -13,7 +14,7 @@ use base qw(MT::Plugin);
 use MT;
 use MT::Entry;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 my $plugin = __PACKAGE__->new({
     id => 'fiscal_yearly_archives',
@@ -61,7 +62,7 @@ sub init_registry {
 		    dynamic_template => 'fiscal/<$MTArchiveFiscalYear$>',
 		    dynamic_support => 1,
 		    date_based => 1,
-		    # ???
+		    # ??? i don't know what it really means ???
 		    template_params => {
 			datebased_only_archive => 1,
 			datebased_fiscal_yearly_archive => 1,
