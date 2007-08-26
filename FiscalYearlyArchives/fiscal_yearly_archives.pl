@@ -28,7 +28,6 @@ my $plugin = __PACKAGE__->new({
     settings => new MT::PluginSettings([
 	['fiscal_start_month', { Default => 4, Scope => 'system' }],
     ]),
-    
 });
 MT->add_plugin($plugin);
 
@@ -76,22 +75,31 @@ sub init_registry {
     });
 }
 
-# This is a dirty hack to omit multiple get_config_value() calls for
-# optimization.  Basically, I don't like the way which a plugin loads
-# and stores its configuration by using MT::PluginSettings.  Because I
-# believe it should be able to get_and_set to the 'registry' in a more
-# flexible and transparent manner.
-our $START_MONTH;
-sub init_request {
-    my $plugin = shift;
-    $plugin->SUPER::init_request(@_);
-    $START_MONTH = $plugin->get_config_value('fiscal_start_month') || 4;
+# a dirty hack to avoid multiple get_config_value() calls for
+# optimization
+{
+    my $start_month;
+
+    # fetch 'fiscal_start_month' at the first time the method is
+    # called, and cache it to $start_month
+    sub fiscal_start_month {
+	return $start_month if $start_month;
+	$start_month = $plugin->get_config_value('fiscal_start_month') || 4;
+    }
+
+    # invalidate $start_month cache everytime init_request() called
+    sub init_request {
+	my $plugin = shift;
+	$plugin->SUPER::init_request(@_);
+	$start_month = undef;
+    }
 }
 
 sub ts2fiscal {
     my ($ts) = @_;
     my ($y, $m) = unpack('A4A2', $ts);
-    $y-- if $m < $START_MONTH;
+    my $start_month = fiscal_start_month();
+    $y-- if $m < $start_month;
     $y;
 }
 
@@ -107,15 +115,15 @@ sub archive_fiscal_year {
 
 sub start_end_fiscal_year {
     my ($ts) = @_;
-    my $start_year = ts2fiscal($ts);
-    my $start = sprintf("%04d%02d%02d000000", $start_year, $START_MONTH, 1);
+    my ($start_year, $start_month) = (ts2fiscal($ts), fiscal_start_month());
+    my $start = sprintf("%04d%02d%02d000000", $start_year, $start_month, 1);
     return $start unless wantarray;
 
     my ($end_year, $end_month, $end_day);
-    if ($START_MONTH == 1) {
+    if ($start_month == 1) {
 	($end_year, $end_month, $end_day) = ($start_year, 12, 31);
     } else {
-	($end_year, $end_month) = ($start_year + 1, $START_MONTH - 1);
+	($end_year, $end_month) = ($start_year + 1, $start_month - 1);
 	$end_day = MT::Util::days_in($end_month, $end_year);
     }
     my $end = sprintf("%04d%02d%02d235959", $end_year, $end_month, $end_day);
@@ -202,7 +210,7 @@ sub archive_group_iter {
 
 sub archive_group_entries {
     my ($ctx, %param) = @_;
-    my $ts = sprintf("%04d%02d%02d000000", $param{fiscal_year}, $START_MONTH, 1)
+    my $ts = sprintf("%04d%02d%02d000000", $param{fiscal_year}, fiscal_start_month(), 1)
 	if %param;
     my ($start, $end);
     if ($ts) {
@@ -235,10 +243,8 @@ sub archive_entries_count {
     my $cat  = $params->{Category};
     my $auth = $params->{Author};
 
-    my ($start, $end);
-    if ($ts) {
-	($start, $end) = start_end_fiscal_year($ts);
-    }
+    my ($start, $end) = start_end_fiscal_year($ts)
+	if $ts;
     my $count = MT->model('entry')->count({
 	blog_id => $blog->id,
 	status  => MT::Entry::RELEASE(),
