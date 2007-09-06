@@ -237,23 +237,16 @@ sub archive_group_entries {
 }
 
 sub archive_entries_count {
-    my ($params) = @_;
-    my $blog = $params->{Blog};
-    my $at   = $params->{ArchiveType};
-    my $ts   = $params->{Timestamp};
-    my $cat  = $params->{Category};
-    my $auth = $params->{Author};
-
+    my ($blog, $at, $entry) = @_;
+    my $ts = $entry->authored_on;
     my ($start, $end) = start_end_fiscal_year($ts)
 	if $ts;
     my $count = MT->model('entry')->count({
 	blog_id => $blog->id,
 	status  => MT::Entry::RELEASE(),
 	$ts   ? (authored_on => [$start, $end]) : (),
-	$auth ? (author_id => $auth->id) : (),
     }, {
 	$ts   ? (range => { authored_on => 1 }) : (),
-	$cat  ? ('join' => ['MT::Placement', 'entry_id', { category_id => $cat->id }]) : (),
     });
     $count;
 }
