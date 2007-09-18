@@ -14,7 +14,7 @@ use base qw(MT::Plugin);
 use MT;
 use MT::Entry;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 my $plugin = __PACKAGE__->new({
     id => 'fiscal_yearly_archives',
@@ -186,7 +186,7 @@ sub archive_group_iter {
 	my $ts = sprintf("%04d%02d%02d000000", $row[1], $row[2], 1);
 	my ($start, $end) = start_end_fiscal_year($ts);
 	my $year = ts2fiscal($ts);
-	if ($year == $prev_year) {
+	if (defined $prev_year && $prev_year == $year) {
 	    $count_groups[-1]->{count} += $row[0];
 	} else {
 	    push @count_groups, {
