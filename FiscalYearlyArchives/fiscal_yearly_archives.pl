@@ -49,6 +49,8 @@ sub init_registry {
 		    archive_file => \&archive_file,
 		    archive_title => \&archive_title,
 		    date_range => \&date_range,
+		    next_archive_entry => \&next_archive_entry,
+		    previous_archive_entry => \&previous_archive_entry,
 		    archive_group_iter => \&archive_group_iter,
 		    archive_group_entries => \&archive_group_entries,
 		    archive_entries_count => \&archive_entries_count,
@@ -162,6 +164,36 @@ sub archive_title {
 }
 
 sub date_range { start_end_fiscal_year(@_) }
+
+sub next_archive_entry     { _adjacent_archive_entry(@_, 'next'    ) }
+sub previous_archive_entry { _adjacent_archive_entry(@_, 'previous') }
+
+sub _adjacent_archive_entry {
+    my ( $param, $order ) = @_;
+
+    $order   = ( $order eq 'previous' ) ? 'descend' : 'ascend';
+    my $ts      = $param->{ts};
+    my $blog_id = $param->{blog_id} || ($param->{blog} ? $param->{blog}->id : undef);
+
+    # if $param->{entry} given, override $ts and $blog_id.
+    if (my $e = $param->{entry}) {
+        $ts      = $e->authored_on;
+        $blog_id = $e->blog_id;
+    }
+    my ( $start, $end ) = start_end_fiscal_year($ts);
+    $ts = ( $order eq 'descend' ) ? $start : $end;
+
+    my $entry = MT::Entry->load({
+        status  => MT::Entry::RELEASE(),
+        $blog_id ? ( blog_id   => $blog_id    ) : (),
+    }, {
+        limit     => 1,
+        'sort'    => 'authored_on',
+        direction => $order,
+        start_val => $ts,
+    });
+    $entry;
+}
 
 sub archive_group_iter {
     my ($ctx, $args) = @_;
