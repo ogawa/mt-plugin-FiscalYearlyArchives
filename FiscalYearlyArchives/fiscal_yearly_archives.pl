@@ -13,13 +13,13 @@ use base qw( MT::Plugin );
 
 use MT;
 
-our $VERSION = '0.04';
+our $VERSION = '0.10';
 
 my $plugin = __PACKAGE__->new({
     id => 'fiscal_yearly_archives',
     name => 'FiscalYearlyArchives',
     description => q(<MT_TRANS phrase="A plugin for building Fiscal Yearly Archives">),
-    doc_link => 'http://code.as-is.net/wiki/FiscalYearlyArchives',
+    doc_link => 'http://code.as-is.net/public/wiki/FiscalYearlyArchives',
     author_name => 'Hirotaka Ogawa',
     author_link => 'http://profile.typekey.com/ogawa/',
     version => $VERSION,
