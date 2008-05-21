@@ -1,12 +1,13 @@
 # $Id$
 package FiscalYearlyArchives::L10N::en_us;
-
 use strict;
-use base 'FiscalYearlyArchives::L10N';
+use base qw( FiscalYearlyArchives::L10N );
 use vars qw( %Lexicon );
 
 our %Lexicon = (
     'FISCAL-YEARLY_ADV' => 'Fiscal Yearly',
+    'AUTHOR-FISCAL-YEARLY_ADV' => 'Author Fiscal Yearly',
+    'CATEGORY-FISCAL-YEARLY_ADV' => 'Category Fiscal Yearly',
     'FISCAL_MONTH-1' => 'January',
     'FISCAL_MONTH-2' => 'February',
     'FISCAL_MONTH-3' => 'March',
