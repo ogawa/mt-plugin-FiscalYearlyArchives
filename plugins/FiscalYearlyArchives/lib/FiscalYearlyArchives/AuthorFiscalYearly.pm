@@ -3,7 +3,8 @@ package FiscalYearlyArchives::AuthorFiscalYearly;
 use strict;
 use base qw( MT::ArchiveType::Author FiscalYearlyArchives::FiscalYearly );
 
-use FiscalYearlyArchives::Util qw( fiscal_start_month ts2fiscal start_end_fiscal_year );
+use FiscalYearlyArchives::Util
+  qw( fiscal_start_month ts2fiscal start_end_fiscal_year );
 use MT::Util qw( dirify );
 
 sub name {
@@ -35,23 +36,24 @@ sub dynamic_template {
 
 sub template_params {
     return {
-        archive_class                   => "author-fiscal-yearly-archive",
-        author_fiscal_yearly_archive    => 1,
-        archive_template                => 1,
-        archive_listing                 => 1,
+        archive_class                => "author-fiscal-yearly-archive",
+        author_fiscal_yearly_archive => 1,
+        archive_template             => 1,
+        archive_listing              => 1,
     };
 }
 
 sub archive_title {
     my $obj = shift;
     my ( $ctx, $entry_or_ts ) = @_;
-    my $ts = ref $entry_or_ts ? $entry_or_ts->authored_on : $entry_or_ts;
+    my $ts   = ref $entry_or_ts ? $entry_or_ts->authored_on : $entry_or_ts;
     my $year = ts2fiscal($ts);
     my $lang = lc MT->current_language || 'en_us';
     $lang = 'ja' if lc($lang) eq 'jp';
     my $author = $obj->display_name($ctx);
 
-    sprintf( "%s%s%s", $author, $year, ( $lang eq 'ja' ? '&#24180;&#24230;' : '' ) );
+    sprintf( "%s%s%s",
+        $author, $year, ( $lang eq 'ja' ? '&#24180;&#24230;' : '' ) );
 }
 
 sub archive_file {
@@ -83,7 +85,8 @@ sub archive_group_iter {
     my ( $ctx, $args ) = @_;
     my $blog   = $ctx->stash('blog');
     my $author = $ctx->stash('author');
-    my $sort_order = ( $args->{sort_order} || '' ) eq 'ascend' ? 'ascend' : 'descend';
+    my $sort_order =
+      ( $args->{sort_order} || '' ) eq 'ascend' ? 'ascend' : 'descend';
     my $auth_order = $args->{sort_order} ? $args->{sort_order} : 'ascend';
     my $order = ( $sort_order eq 'ascend' ) ? 'asc' : 'desc';
     my $limit = exists $args->{lastn} ? delete $args->{lastn} : undef;
@@ -91,9 +94,10 @@ sub archive_group_iter {
     require MT::Entry;
     my $auth_iter;
     if ($author) {
-        my @authors = ( $author );
+        my @authors = ($author);
         $auth_iter = sub { shift @authors };
-    } else {
+    }
+    else {
         require MT::Author;
         $auth_iter = MT::Author->load_iter(
             undef,
@@ -110,43 +114,51 @@ sub archive_group_iter {
     }
 
     my @count_groups;
-    while (my $auth = $auth_iter->()) {
+    while ( my $auth = $auth_iter->() ) {
         my $iter = MT::Entry->count_group_by(
             {
-                blog_id => $blog->id,
-                status  => MT::Entry::RELEASE(),
+                blog_id   => $blog->id,
+                status    => MT::Entry::RELEASE(),
                 author_id => $auth->id,
             },
             {
-                group => ["extract(year from authored_on)", "extract(month from authored_on)"],
-                sort  => "extract(year from authored_on) $order, extract(month from authored_on) $order",
+                group => [
+                    "extract(year from authored_on)",
+                    "extract(month from authored_on)"
+                ],
+                sort =>
+"extract(year from authored_on) $order, extract(month from authored_on) $order",
             }
-        ) or return $ctx->error("Couldn't get " . $obj->name . " archive list");
+          )
+          or
+          return $ctx->error( "Couldn't get " . $obj->name . " archive list" );
 
         my $prev_year;
-        while (my @row = $iter->()) {
-            my $ts = sprintf("%04d%02d%02d000000", $row[1], $row[2], 1);
-            my ($start, $end) = start_end_fiscal_year($ts);
+        while ( my @row = $iter->() ) {
+            my $ts = sprintf( "%04d%02d%02d000000", $row[1], $row[2], 1 );
+            my ( $start, $end ) = start_end_fiscal_year($ts);
             my $year = ts2fiscal($ts);
-            if (defined $prev_year && $prev_year == $year) {
+            if ( defined $prev_year && $prev_year == $year ) {
                 $count_groups[-1]->{count} += $row[0];
-            } else {
-                push @count_groups, {
+            }
+            else {
+                push @count_groups,
+                  {
                     count       => $row[0],
                     fiscal_year => $year,
                     start       => $start,
                     end         => $end,
                     author      => $auth,
-                };
+                  };
                 $prev_year = $year;
             }
         }
     }
-    splice(@count_groups, $limit) if $limit;
+    splice( @count_groups, $limit ) if $limit;
 
     return sub {
-        while (my $group = shift(@count_groups)) {
-            return ($group->{count}, %$group);
+        while ( my $group = shift(@count_groups) ) {
+            return ( $group->{count}, %$group );
         }
         undef;
     };
@@ -156,12 +168,14 @@ sub archive_group_entries {
     my $obj = shift;
     my ( $ctx, %param ) = @_;
     my $ts =
-        $param{fiscal_year}
-    ? sprintf( "%04d%02d%02d000000", $param{fiscal_year}, fiscal_start_month(), 1 )
-        : $ctx->stash('current_timestamp');
+      $param{fiscal_year}
+      ? sprintf( "%04d%02d%02d000000",
+        $param{fiscal_year}, fiscal_start_month(), 1 )
+      : $ctx->stash('current_timestamp');
     my $author = $param{author} || $ctx->stash('author');
     my $limit = $param{limit};
-    $obj->dated_author_entries( $ctx, 'Author-FiscalYearly', $author, $ts, $limit );
+    $obj->dated_author_entries( $ctx, 'Author-FiscalYearly', $author, $ts,
+        $limit );
 }
 
 sub archive_entries_count {
