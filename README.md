@@ -111,7 +111,7 @@ FiscalYearlyArchivesは、デフォルトでは4月初日を開始日とする�
 
 ## License
 
-This code is released under the Artistic License. The terms of the Artistic License are described at [here](http://www.perl.com/language/misc/Artistic.html).
+This code is released under the Artistic License. The terms of the Artistic License are described at [http://www.perl.com/language/misc/Artistic.html](http://www.perl.com/language/misc/Artistic.html).
 
 ## Author & Copyright
 
